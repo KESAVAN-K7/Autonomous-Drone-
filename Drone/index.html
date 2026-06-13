@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadcopter Drone Control System</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!--
+        NOTE: Leaflet CSS + JS are loaded dynamically by app.js via loadMapLibrary()
+        so the map initialises only after the library is fully available.
+    -->
+</head>
+<body class="bg-gray-50">
+<div class="min-h-screen">
+
+    <!-- ========== Header ========== -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                    <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/b137edb1-7aee-4581-83bd-18c0d0c885ac.png"
+                         alt="Quadcopter drone icon in blue with four propellers" />
+                </div>
+                <h1 class="text-2xl font-bold">DroneControl X</h1>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div id="connectionStatus" class="flex items-center">
+                    <span class="connection-status disconnected"></span>
+                    <span>Drone: Disconnected</span>
+                </div>
+                <div id="dbStatus" class="flex items-center">
+                    <span class="connection-status disconnected"></span>
+                    <span>DB: Disconnected</span>
+                </div>
+                <button id="connectBtn"
+                        class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
+                    Connect
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== Main Content ========== -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- ── Left Column – Telemetry & Autonomous Mode ── -->
+            <div class="space-y-6">
+
+                <!-- Telemetry Dashboard -->
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col space-y-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3">Drone Telemetry</h2>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <p class="text-gray-500 mb-1">Altitude</p>
+                            <div class="telemetry-value" id="altitude">0 m</div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-500 mb-1">Speed</p>
+                            <div class="telemetry-value" id="speed">0 km/h</div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-500 mb-1">Battery</p>
+                            <div class="telemetry-value" id="battery">100%</div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-500 mb-1">Signal</p>
+                            <div class="telemetry-value" id="signal">100%</div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t">
+                        <p class="text-gray-500 mb-1">GPS Coordinates</p>
+                        <div class="font-mono text-lg" id="coordinates">0.000000, 0.000000</div>
+                    </div>
+                </div>
+
+                <!-- Autonomous Mode Controls -->
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col space-y-4 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3">Autonomous Mode</h2>
+
+                    <div class="space-y-3">
+                        <!-- Auto Land Toggle -->
+                        <div class="flex items-center justify-between">
+                            <span>Autonomous Landing</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="autoLandToggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer
+                                            peer-checked:after:translate-x-full peer-checked:after:border-white
+                                            after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                            after:bg-white after:border-gray-300 after:border after:rounded-full
+                                            after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        <!-- Auto Takeoff Toggle -->
+                        <div class="flex items-center justify-between">
+                            <span>Auto Takeoff</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="autoTakeoffToggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer
+                                            peer-checked:after:translate-x-full peer-checked:after:border-white
+                                            after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                            after:bg-white after:border-gray-300 after:border after:rounded-full
+                                            after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        <div class="pt-3">
+                            <button id="executeMissionBtn"
+                                    class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-lg
+                                           font-medium hover:from-green-600 hover:to-green-700 transition shadow-md">
+                                Execute Mission
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Middle Column – Flight Controls & Map ── -->
+            <div class="space-y-6">
+
+                <!-- Flight Controls -->
+                <div class="bg-white rounded-xl shadow-md p-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Manual Flight Controls</h2>
+
+                    <div class="flex justify-center">
+                        <div class="relative w-64 h-64">
+
+                            <!-- Central HOLD hub -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+                                        w-24 h-24 rounded-full bg-gray-100 border-4 border-blue-200
+                                        flex items-center justify-center cursor-pointer hover:bg-blue-100 transition"
+                                 id="centerControl">
+                                <span class="text-blue-600 font-medium">HOLD</span>
+                            </div>
+
+                            <!-- Forward -->
+                            <button class="control-btn absolute top-0 left-1/2 transform -translate-x-1/2
+                                           w-20 h-20 rounded-tl-lg rounded-tr-lg bg-blue-100 border border-blue-200
+                                           hover:bg-blue-200 transition" id="forwardBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/b290e4f1-c840-4504-9507-68c5bc94e29c.png"
+                                     alt="Upwards arrow icon for forward drone movement" />
+                            </button>
+
+                            <!-- Backward -->
+                            <button class="control-btn absolute bottom-0 left-1/2 transform -translate-x-1/2
+                                           w-20 h-20 rounded-bl-lg rounded-br-lg bg-blue-100 border border-blue-200
+                                           hover:bg-blue-200 transition" id="backwardBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1765f03a-e1fb-48cc-a37e-60241abd18ab.png"
+                                     alt="Downwards arrow icon for backward drone movement" />
+                            </button>
+
+                            <!-- Left -->
+                            <button class="control-btn absolute left-0 top-1/2 transform -translate-y-1/2
+                                           w-20 h-20 rounded-tl-lg rounded-bl-lg bg-blue-100 border border-blue-200
+                                           hover:bg-blue-200 transition" id="leftBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2076ea92-f88e-4a40-be89-e1a0306a46f6.png"
+                                     alt="Left arrow icon for moving drone to the left" />
+                            </button>
+
+                            <!-- Right -->
+                            <button class="control-btn absolute right-0 top-1/2 transform -translate-y-1/2
+                                           w-20 h-20 rounded-tr-lg rounded-br-lg bg-blue-100 border border-blue-200
+                                           hover:bg-blue-200 transition" id="rightBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/a8a3cd7b-3a2b-4dec-b2b0-ac78b7f04983.png"
+                                     alt="Right arrow icon for moving drone to the right" />
+                            </button>
+
+                            <!-- Rotate Left -->
+                            <button class="control-btn absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2
+                                           w-16 h-16 rounded-full bg-indigo-100 border border-indigo-200
+                                           hover:bg-indigo-200 transition" id="rotateLeftBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/ea6aa03a-480c-4260-ae83-fdaf7bae922d.png"
+                                     alt="Counter-clockwise rotation icon for turning drone left" />
+                            </button>
+
+                            <!-- Rotate Right -->
+                            <button class="control-btn absolute top-1/4 right-1/4 transform -translate-x-1/2 -translate-y-1/2
+                                           w-16 h-16 rounded-full bg-indigo-100 border border-indigo-200
+                                           hover:bg-indigo-200 transition" id="rotateRightBtn">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/28f78788-1a18-44ee-aef1-de52230644b1.png"
+                                     alt="Clockwise rotation icon for turning drone right" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <button id="takeoffBtn"
+                                class="bg-green-500 text-white py-2 rounded-lg font-medium hover:bg-green-600 transition">
+                            Takeoff
+                        </button>
+                        <button id="landBtn"
+                                class="bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition">
+                            Land
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Map View -->
+                <div class="bg-white rounded-xl shadow-md p-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Drone Location</h2>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- ── Right Column – Camera, History, Logs ── -->
+            <div class="space-y-6">
+
+                <!-- Live Camera Feed -->
+                <div class="bg-white rounded-xl shadow-md p-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Live Camera Feed</h2>
+                    <div class="relative aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/9ed5cb3c-1762-4ecc-8e1c-463b7ab0a103.png"
+                             alt="Placeholder for drone camera feed showing aerial view of terrain"
+                             id="cameraFeed" />
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-gray-500 bg-white bg-opacity-90 px-4 py-2 rounded-lg border">
+                                No live feed available
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-4">
+                        <button id="recordBtn"
+                                class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg border border-gray-300
+                                       hover:bg-gray-200 transition flex items-center space-x-2">
+                            <span>REC</span>
+                            <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                        </button>
+                        <button id="zoomInBtn"
+                                class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-200 transition">
+                            Zoom In +
+                        </button>
+                        <button id="zoomOutBtn"
+                                class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-200 transition">
+                            Zoom Out -
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Flight History -->
+                <div class="bg-white rounded-xl shadow-md p-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Flight History</h2>
+                    <div id="flightHistory"
+                         class="h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 font-mono text-sm space-y-1">
+                        <div class="text-gray-500">No flight history available</div>
+                    </div>
+                    <button id="loadHistoryBtn"
+                            class="mt-3 w-full bg-blue-500 text-white py-2 rounded-lg font-medium hover:bg-blue-600 transition">
+                        Load Flight History
+                    </button>
+                </div>
+
+                <!-- System Logs -->
+                <div class="bg-white rounded-xl shadow-md p-6 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">System Logs</h2>
+                    <div id="logContainer"
+                         class="h-64 overflow-y-auto bg-gray-50 rounded-lg p-3 font-mono text-sm space-y-2">
+                        <div class="text-gray-500">[System] Waiting for connection...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- App Logic (deferred so DOM is ready) -->
+<script src="app.js" defer></script>
+</body>
+</html>

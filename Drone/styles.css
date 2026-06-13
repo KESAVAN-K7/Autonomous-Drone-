@@ -1,0 +1,44 @@
+/* Leaflet Map */
+#map {
+    height: 300px;
+    width: 100%;
+    border-radius: 8px;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Telemetry Values */
+.telemetry-value {
+    font-size: 2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Connection Status Dot */
+.connection-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.connected {
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.disconnected {
+    background-color: #ef4444;
+}
